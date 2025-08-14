@@ -100,19 +100,39 @@ exports.addToCart = async (req, res) => {
   }
 };
 
-
 // Get Cart
 exports.getCart = async (req, res) => {
   try {
     const userId = req.user.id;
     const cart = await Cart.findOne({ userId });
 
-    if (!cart) return res.status(200).json({ items: [] });
+    if (!cart || cart.items.length === 0)
+      return res.status(200).json({ items: [], total: 0 });
+    const total = cart.items.reduce(
+      (sum, item) => sum + item.price * item.quantity
+    );
 
-    res.json(cart);
+    return res.status(200).json({ cart, total });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message });
+  }
+};
+exports.getCartTotal = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const cart = await Cart.findOne({ userId });
+    if (!cart || cart.items.length === 0)
+      return res.status(400).json({ total: 0 });
+
+    const total = cart.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    return res.status(200).json({ total });
+  } catch (error) {
+    console.error("Update quantity error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -186,22 +206,6 @@ exports.updateQuantity = async (req, res) => {
     await cart.save();
 
     res.status(200).json({ message: "Item quantity updated", cart });
-  } catch (error) {
-    console.error("Update quantity error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-exports.getCartTotal = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const cart = await Cart.findOne({ userId });
-    if (!cart || cart.items.length ===0) return res.status(400).json({ total:0 });
-
-    const total = cart.items.reduce(
-        (sum, item)=>sum + item.price * item.quantity ,0
-    );
-    return res.status(200).json({total});
   } catch (error) {
     console.error("Update quantity error:", error);
     res.status(500).json({ message: "Internal server error" });
